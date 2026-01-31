@@ -1,4 +1,4 @@
-use crate::{Error, Origin, http::{Context, Gates}};
+use crate::{Error, http::{Context, Gates}};
 
 #[allow(async_fn_in_trait)]
 
@@ -9,23 +9,25 @@ use crate::{Error, Origin, http::{Context, Gates}};
     *Is used internally by Service Instance*
  */
 pub trait Worker: Clone + Sync + Send {
-    type GReq: Gates;
-    type GRes: Gates;
+    type GReq: Gates + 'static;
+    type GRes: Gates + 'static;
 
     async fn process_request(&self, gates: Self::GReq) -> Result<Self::GRes, Error>;
 
     /** Should return reference on static context with same gates */
     fn context_ref(&self) -> &'static Context<Self::GReq, Self::GRes>;
 
+    /** Function is ran before the request has been processed */
     async fn middleware_pre(&self, request: actix_web::dev::ServiceRequest) 
-        -> (actix_web::dev::ServiceRequest, Option<Error>) 
+        -> Result<actix_web::dev::ServiceRequest, Error> 
     {
-        (request, None)
+        Ok(request)
     }
 
+    /** Function is ran after the request has been processed */
     async fn middleware_post(&self, response: actix_web::dev::ServiceResponse) 
-        -> (actix_web::dev::ServiceResponse, Option<Error>)
+        -> Result<actix_web::dev::ServiceResponse, Error>
     {
-        (response, None)
+        Ok(response)
     }
 }

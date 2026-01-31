@@ -1,12 +1,10 @@
-use serde::{Deserialize, Serialize};
-
-
 #[rmt::rmtm::gates]
 pub enum ExGatesReq {
     Ping { },
     Hello { msg: String },
     HelloToMe { msg: String },
-    Time { }
+    Time { },
+    Last { }
 }
 
 impl rmt::http::Gates for ExGatesReq { }
@@ -15,7 +13,8 @@ impl rmt::http::Gates for ExGatesReq { }
 pub enum ExGatesRes {
     Pong { },
     Hello { msg: String },
-    Time { time: String }
+    Time { time: String },
+    Last { msg: String }
 }
 
 impl rmt::http::Gates for ExGatesRes { }

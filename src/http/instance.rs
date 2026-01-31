@@ -1,9 +1,14 @@
 use std::sync::Arc;
-
 use actix_web::{App, HttpServer, body::BoxBody, dev::{self, ServiceResponse}, middleware::{self, from_fn}, web};
-use log::{error, info, warn};
+use log::{error, info, trace, warn};
 
 use crate::{Origin, http::{Worker, gates::{GateErrorResponse, GateResult}}, logger::init_logger, origin::AllowedOrigins};
+
+pub enum Encryption {
+    TLS(rustls::ServerConfig),
+    SSL(openssl::ssl::SslAcceptorBuilder),
+    None
+}
 
 /** **Service Instance**
 
@@ -12,7 +17,9 @@ use crate::{Origin, http::{Worker, gates::{GateErrorResponse, GateResult}}, logg
 pub struct Instance<W: Worker> {
     worker: W,
     internal: bool,
-    allowed_origins: Option<Vec<Origin>>
+    allowed_origins: Option<Vec<Origin>>,
+    encryption: Encryption,
+    workers_count: usize   // 0 - automatic by actix
 }
 
 async fn processor<W: Worker>(data: web::Json<W::GReq>, worker: web::Data<W>) -> web::Json<GateResult<W::GRes>>  {
@@ -41,46 +48,62 @@ async fn middleware<W>(
 {
     let origin = request.connection_info()
         .peer_addr()
-        .expect("Middleware expected peer address!")
+        .ok_or_else( || {
+            warn!("No peer address in middleware");
+            actix_web::error::ErrorInternalServerError("No peer adress")
+        })?
         .to_string();
 
-    info!("New request from origin {}.", origin);
+    info!("{}", origin);
+
+    trace!("New request from origin {}.", origin);
 
     let allowed_origins = request.app_data::<web::Data<Option<Arc<AllowedOrigins>>>>()
-        .expect("AllowedOrigins did not reach middleware!");
+        .ok_or_else(|| {
+            warn!("No allowed origing in middleware");
+            actix_web::error::ErrorInternalServerError("Data error")
+        })?;
 
 
     if let Some(origins) = allowed_origins.as_deref() { 
         if !origins.contains(&origin) {
-            warn!("New request from unlisted origin {}!", origin);
+            info!("New request from unlisted origin {}!", origin);
             return Ok(request.into_response(dev::Response::bad_request()));
         }
     };
 
 
     let worker = request.app_data::<web::Data<W>>()
-        .expect("Worker did not react middleware")
+        .ok_or_else(|| {
+            warn!("No worker in middleware");
+            actix_web::error::ErrorInternalServerError("Data error")
+        })?
         .clone();
 
-    let (request, err) = worker.get_ref()
+    let request = 
+    if let Ok(request) = worker.get_ref()
         .middleware_pre(request)
-        .await;
+        .await
+        .map_err(|err| {
+            warn!("Worker pre middleware errored! {}", err.to_string());
+        }) { request } 
+    else {
+        return Err(actix_web::error::ErrorInternalServerError("Worker pre middleware"))
+    };
 
-    if let Some(err) = err {
-        info!("Worker pre middleware errored! {}", err.to_string());
-        return Ok(request.into_response(dev::Response::bad_request()));
-    }
  
     let response = next.call(request).await?;
 
-    let (response, err) = worker.get_ref()
+    let response = 
+    if let Ok(response) = worker.get_ref()
         .middleware_post(response)
-        .await;
-
-    if let Some(err) = err {
-        info!("Worker post middleware errored! {}", err.to_string());
-        return Ok(response.into_response(actix_web::HttpResponse::Locked().finish()));
-    }
+        .await
+        .map_err(|err| {
+            warn!("Worker post middleware errored! {}", err.to_string());
+        }) { response } 
+    else {
+        return Err(actix_web::error::ErrorInternalServerError("Worker post middleware"))
+    };
 
     Ok(response)
 }
@@ -91,12 +114,23 @@ impl<W> Instance<W>
 {
     pub fn new(worker: W) -> Self {
         init_logger();
+        let internal = worker.context_ref().internal;
 
         Self {
-            internal: worker.context_ref().internal,
+            internal,
             worker,
-            allowed_origins: None
+            allowed_origins: None,
+            encryption: Encryption::None,
+            workers_count: 0
         }
+    }
+
+    pub fn set_encryption(&mut self, enc: Encryption) {
+        self.encryption = enc;
+    }
+
+    pub fn set_workers_count(&mut self, count: usize) {
+        self.workers_count = count;
     }
 
     /** Makes instance internal. Only requests from allowed origins are accepted.
@@ -106,7 +140,7 @@ impl<W> Instance<W>
         self.allowed_origins = Some(allowed_origins);
     }
 
-    pub async fn run(&self) -> std::io::Result<()> {
+    pub async fn run(self) -> std::io::Result<()> {
         let origin = self.worker.context_ref().origin();
         let ip = origin.ip();
         let port = origin.port();
@@ -125,15 +159,24 @@ impl<W> Instance<W>
 
         info!("Starting http server on {}:{}", ip, port);
 
-        HttpServer::new(move || {
+        let server = HttpServer::new(move || {
             App::new()
                 .app_data(worker_state.clone())
                 .app_data(allowed_origins.clone())
                 .wrap(from_fn(middleware::<W>))
                 .route(route_path, web::post().to(processor::<W>))
-        })
-        .bind((ip, port))?
-        .run()
-        .await
+        });
+
+        let server = if self.workers_count != 0 {
+            server.workers(self.workers_count)
+        } else {
+            server
+        };
+
+        match self.encryption {
+            Encryption::None => server.bind((ip, port)),
+            Encryption::SSL(ssl) => server.bind_openssl((ip, port), ssl),
+            Encryption::TLS(tls) => server.bind_rustls_0_23((ip, port), tls)
+        }?.run().await
     }
 }

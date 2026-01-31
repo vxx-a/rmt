@@ -45,7 +45,10 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
-            println!("[{}] {}", record.level(), record.args())
+            let datetime = chrono::Local::now()
+                .format("%H:%M:%S %d/%m");
+
+            println!("{} [{}] {}", datetime, record.level(), record.args())
         }
     }
 

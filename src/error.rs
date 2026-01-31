@@ -5,7 +5,8 @@ use crate::http;
 pub enum Error {
     Http(http::error::Error),
     Websocket,
-    Service(ServiceError)
+    Service(ServiceError),
+    Custom(Option<String>)
 }
 
 impl Display for Error {
@@ -13,7 +14,8 @@ impl Display for Error {
         match self {
             Self::Http(err) => write!(f, "Http error. {:?}", err),
             Self::Websocket => write!(f, "Websocket error."),
-            Self::Service(err) => write!(f, "Service error. {:?}", err)
+            Self::Service(err) => write!(f, "Service error. {:?}", err),
+            Self::Custom(err) => write!(f, "Custom Error. {}", err.clone().unwrap_or("empty".to_string()))
         }
     }
 }
