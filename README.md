@@ -1,14 +1,13 @@
 # Rust Microservice Template
-**Define Microservices as Static Types**
+##### Define Microservices as Static Types
 
 Built on top of actix.
 Allows for http/https and websocket service protocols.
 ##### Philosophy
 Describe your microservices once and use anywhere.
-
 Make requests to other microservices by simply importing them.
 ### Definitions
-`[Enum]`**Origin**  - service origin. Is relativistic to other services and depends on final architecture (local for small projects in one docker image, remote for big projects involving many docker images)
+`[Enum]`**Origin**  - service origin. Is relativistic to other services and depends on final architecture (local for small projects in one docker image, remote for big projects involving many docker images).
 
 `[Trait]`**Gates** - api itself. For http request and response gates. For websockets incoming and outgoing.
 
