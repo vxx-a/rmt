@@ -1,4 +1,4 @@
-use crate::{Error, http::{Context, Gates}};
+use crate::{Error, gates::Gates, http::Context};
 
 #[allow(async_fn_in_trait)]
 

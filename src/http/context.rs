@@ -1,5 +1,5 @@
 use std::{marker::PhantomData, time::Duration};
-use crate::{Error, Origin, error::ServiceError, http::{self, Gates}};
+use crate::{Error, Origin, error::ServiceError, gates::Gates, http};
 
 const SERVICE_REQUEST_TIMEOUT: u64 = 5000;  // 5 seconds
 

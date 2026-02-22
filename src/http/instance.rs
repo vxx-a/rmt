@@ -2,7 +2,7 @@ use std::sync::Arc;
 use actix_web::{App, HttpServer, body::BoxBody, dev::{self, ServiceResponse}, middleware::{self, from_fn}, web};
 use log::{error, info, trace, warn};
 
-use crate::{Origin, http::{Worker, gates::{GateErrorResponse, GateResult}}, logger::init_logger, origin::AllowedOrigins};
+use crate::{Origin, gates::{GateErrorResponse, GateResult}, http::Worker, logger::init_logger, origin::AllowedOrigins};
 
 pub enum Encryption {
     TLS(rustls::ServerConfig),

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{ops::Deref, sync::{Arc, Mutex}};
 
 use chrono::Local;
 use rmt::{self, Origin, http::instance::Encryption};
@@ -7,7 +7,8 @@ use definitions::*;
 
 #[derive(Clone)]
 struct ServiceWorker { 
-    pub last_message: Arc<Mutex<String>>
+    last_message: Arc<Mutex<String>>,
+    http_client: reqwest::Client
 }
 
 impl rmt::http::Worker for ServiceWorker {
@@ -33,10 +34,8 @@ impl rmt::http::Worker for ServiceWorker {
                 Ok(Self::GRes::Pong {  })
             },
             Self::GReq::HelloToMe { msg } => {
-                let http_client = reqwest::Client::new();
-
                 let response = SERVICE_CONTEXT
-                    .request(http_client, ExGatesReq::Hello { msg: msg.clone() })
+                    .request(self.http_client.clone(), ExGatesReq::Hello { msg: msg.clone() })
                     .await;
 
                 match response {
@@ -71,7 +70,8 @@ impl rmt::http::Worker for ServiceWorker {
 async fn main() {
     rmt::logger::set_log_level(rmt::logger::LogLevel::Info);
     let service_worker = ServiceWorker { 
-        last_message: Arc::new(Mutex::new(String::new()))
+        last_message: Arc::new(Mutex::new(String::new())),
+        http_client: reqwest::Client::new()
     };
 
     let mut instance = rmt::http::Instance::new(service_worker);

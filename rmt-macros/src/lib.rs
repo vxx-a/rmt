@@ -21,7 +21,7 @@ pub fn gates(_attr: TokenStream, item: TokenStream) -> TokenStream {
             #variants
         }
         
-        impl rmt::http::Gates for #ident { }
+        impl rmt::Gates for #ident { }
     }
     .into()
 }
