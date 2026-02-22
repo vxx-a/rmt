@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::{Arc, Mutex}};
+use std::sync::{Arc, Mutex};
 
 use chrono::Local;
 use rmt::{self, Origin, http::instance::Encryption};
