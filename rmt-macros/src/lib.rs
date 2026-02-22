@@ -20,6 +20,8 @@ pub fn gates(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #vis enum #ident #generics {
             #variants
         }
+        
+        impl rmt::http::Gates for #ident { }
     }
     .into()
 }

@@ -4,9 +4,10 @@ use crate::{Error, http::{Context, Gates}};
 
 /** **Service Worker** 
  
-    defines interface for user to implement processing. Independent from Service Context.
+    Defines interface for user to implement processing. Independent from Service Context.
+    Worker can store data which can be accessed in every request. Because of this Clone + Sync + Send is required.
     
-    *Is used internally by Service Instance*
+    Is called by Service Instance.
  */
 pub trait Worker: Clone + Sync + Send {
     type GReq: Gates + 'static;

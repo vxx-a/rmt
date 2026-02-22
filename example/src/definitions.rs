@@ -7,8 +7,6 @@ pub enum ExGatesReq {
     Last { }
 }
 
-impl rmt::http::Gates for ExGatesReq { }
-
 #[rmt::rmtm::gates]
 pub enum ExGatesRes {
     Pong { },
@@ -16,8 +14,6 @@ pub enum ExGatesRes {
     Time { time: String },
     Last { msg: String }
 }
-
-impl rmt::http::Gates for ExGatesRes { }
 
 pub const SERVICE_CONTEXT: rmt::http::Context<ExGatesReq, ExGatesRes> = 
     rmt::http::Context::new(rmt::Origin::Local { port: 2020 }, false);
