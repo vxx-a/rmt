@@ -142,7 +142,7 @@ impl<W> Instance<W>
 
     pub async fn run(self) -> std::io::Result<()> {
         let origin = self.worker.context_ref().origin();
-        let ip = origin.ip();
+        let ip = origin.self_host();
         let port = origin.port();
 
         let worker_state = web::Data::new(self.worker.clone());

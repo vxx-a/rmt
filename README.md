@@ -39,7 +39,7 @@ pub enum GatesRes {
 // Describe a service with gates from above
 // Assign localhost on port 2020
 // Set false to internal flag (can recieve any request)
-pub const SERVICE_CONTEXT: rmt::http::Context<GatesReq, GatesRes> = 
+pub static SERVICE_CONTEXT: rmt::http::Context<GatesReq, GatesRes> = 
     rmt::http::Context::new(rmt::Origin::Local { port: 2020 }, false);
 ```
 *This part can be accessed by other services.*

@@ -15,5 +15,5 @@ pub enum ExGatesRes {
     Last { msg: String }
 }
 
-pub const SERVICE_CONTEXT: rmt::http::Context<ExGatesReq, ExGatesRes> = 
+pub static SERVICE_CONTEXT: rmt::http::Context<ExGatesReq, ExGatesRes> = 
     rmt::http::Context::new(rmt::Origin::Local { port: 2020 }, false);

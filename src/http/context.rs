@@ -30,7 +30,7 @@ impl<GRes: Gates, GReq: Gates> Context<GReq, GRes> {
     pub async fn request(&self, http_client: reqwest::Client, gate: GReq) -> Result<GRes, Error> {
         let path = if self.internal { "internal-request" } else { "request" };
         
-        let raw = http_client.post(format!("http://{}:{}/{path}", self.origin.ip(), self.origin.port()))
+        let raw = http_client.post(format!("http://{}:{}/{path}", self.origin.host(), self.origin.port()))
             .json(&gate)
             .timeout(Duration::from_millis(SERVICE_REQUEST_TIMEOUT))
             .send()

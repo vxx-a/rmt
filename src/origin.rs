@@ -1,24 +1,32 @@
 use std::{collections::HashSet, sync::Arc};
 
+const LOCALHOST: &str = "127.0.0.1";
+
 
 pub enum Origin {
     Local { port: u16 },
-    Remote { ip: &'static str, port: u16 }
+    IP { addr: &'static str, port: u16 },
+    Host { host: &'static str, port: u16 }
 }
 
 impl Origin {
-    pub fn ip(&self) -> &'static str {
-        if let Origin::Remote { ip , port: _ } = self {
-            *ip
-        } else {
-            "127.0.0.1"
+    pub fn host(&self) -> &'static str {
+        match self {
+            Origin::Local { port: _ } => LOCALHOST,
+            Origin::IP { addr: ip, port: _ } => ip,
+            Origin::Host { host , port: _ } => host
         }
+    }
+
+    pub(crate) fn self_host(&self) -> &'static str {
+        LOCALHOST
     }
 
     pub fn port(&self) -> u16 {
         match self {
             Origin::Local { port } => *port,
-            Origin::Remote { ip: _, port } => *port
+            Origin::IP { addr: _, port } => *port,
+            Origin::Host { host: _, port } => *port
         }
     }
 }
@@ -39,7 +47,7 @@ impl From<&Vec<Origin>> for AllowedOrigins {
         let mut set = HashSet::new();
 
         value.into_iter()
-            .map(|origin| origin.ip())
+            .map(|origin| origin.host())
             .for_each(|ip| {
                 set.insert(ip.to_string());
             });
