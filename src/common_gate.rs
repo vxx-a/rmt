@@ -11,7 +11,7 @@ pub struct GateErrorResponse {
 
     Compound trait for ```serde::Serialize```, ```serde::Deserialize``` and ```Clone```
  */
-pub trait Gates: Serialize + DeserializeOwned + Clone + Sized { }
+pub trait Payload: Serialize + DeserializeOwned + Clone { }
 
 impl From<Error> for GateErrorResponse {
     fn from(value: Error) -> Self {
@@ -19,14 +19,14 @@ impl From<Error> for GateErrorResponse {
     }
 }
 
-impl Gates for GateErrorResponse { }
+impl Payload for GateErrorResponse { }
 
-pub enum GateResult<G: Gates> {
+pub enum GateResult<G: Payload> {
     Ok(G),
     Err(GateErrorResponse)
 }
 
-impl<G: Gates> Serialize for GateResult<G> {
+impl<G: Payload> Serialize for GateResult<G> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: serde::Serializer 
     {

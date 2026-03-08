@@ -22,8 +22,47 @@ pub fn gates(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         
         impl rmt::Gates for #ident { }
-    }
-    .into()
+    }.into()
+}
+
+/** *Generates gate*
+ ```
+ #[http_gate( MyService : GateName | Worker )]
+ async fn<W: Worker>(request: Self::Request, worker: &W) -> Result<Self::Response, Error> {
+ ```
+  
+ */
+#[proc_macro_attribute]
+pub fn http_gate(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as HTTPGateArgs);
+    let input = parse_macro_input!(item as ItemFn);
+
+    let block = input.block;
+    let attrs = input.attrs;
+    let vis = input.vis;
+    let sig = input.sig;
+
+    let gate = args.gate;
+    let service = args.service;
+    let worker = args.worker;
+
+    quote! {
+        rmt::paste::paste! {
+            #vis struct [<HTTP #service #gate Serv>] { }
+            impl rmt::http::Gate for [<HTTP #service #gate Serv>] {
+                type Request = [<HTTP #service #gate Req>];
+                type Response = [<HTTP #service #gate Res>];
+                type W = [< #worker >];
+
+                #(#attrs)*
+                #sig
+                {
+                    #block
+                }
+            }
+
+        }
+    }.into()
 }
 
 #[proc_macro_attribute]

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use chrono::Local;
-use rmt::{self, Origin, http::instance::Encryption};
+use log::warn;
+use rmt::{self, Origin, http::{Gate, instance::Encryption}, http_bind_ctx, http_bind_service, http_request, rmtm};
 mod definitions;
 use definitions::*;
 
@@ -11,50 +11,41 @@ struct ServiceWorker {
     http_client: reqwest::Client
 }
 
+#[rmtm::http_gate( MyService : Msg | ServiceWorker )]
+async fn process(request: Self::Request, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+    let msg: String = request.msg.chars().rev().collect();
+    let last_msg = worker.last_message.lock().unwrap().to_string();
+    *worker.last_message.lock().unwrap() = msg.clone();
+    
+    Ok(Self::Response {
+        msg,
+        last_msg
+    })
+}
+
+#[rmtm::http_gate( MyService : Ping | ServiceWorker )]
+async fn process(_request: Self::Request, _worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+    Ok(Self::Response { })
+}
+
+#[rmtm::http_gate( MyService : Hello | ServiceWorker )]
+async fn process(request: Self::Request, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+    let new_msg = http_request! { 
+        SERVICE_CONTEXT | (worker.http_client.clone()) MyService : Msg { msg: request.msg }
+    }
+        .await
+        .map(|res| res.msg + "1")
+        .map_err(|e| warn!("{e}"))
+        .unwrap_or("NO MSG!".to_string());
+    
+    Ok(Self::Response { 
+        msg: new_msg
+    })
+}
+
 impl rmt::http::Worker for ServiceWorker {
-    type GReq = ExGatesReq;
-    type GRes = ExGatesRes;
-
-    fn context_ref(&self) -> &'static rmt::http::Context<Self::GReq, Self::GRes> {
-        &SERVICE_CONTEXT
-    }
-
-    async fn process_request(&self, gates: Self::GReq) -> Result<Self::GRes, rmt::Error> {
-        match gates {
-            Self::GReq::Hello { msg } => {
-                let msg = msg.chars()
-                    .rev()
-                    .fold(String::new(), |s, x| s + &x.to_string());
-
-                *self.last_message.lock().unwrap() = msg.clone();
-
-                Ok(Self::GRes::Hello { msg })
-            },
-            Self::GReq::Ping {  } => {
-                Ok(Self::GRes::Pong {  })
-            },
-            Self::GReq::HelloToMe { msg } => {
-                let response = SERVICE_CONTEXT
-                    .request(self.http_client.clone(), ExGatesReq::Hello { msg: msg.clone() })
-                    .await;
-
-                match response {
-                    Ok(g) => Ok(g),
-                    Err(e) => Ok(ExGatesRes::Hello { msg: e.to_string() })
-                }
-            },
-            Self::GReq::Time { } => {
-                let s = Local::now().to_string();
-
-                Ok(Self::GRes::Time { time: s })
-            },
-            Self::GReq::Last { } => {
-                let msg = self.last_message.lock().unwrap().to_string();
-
-                Ok(Self::GRes::Last { msg })
-            }
-        }
-    }
+    http_bind_service!{ MyService }
+    http_bind_ctx!{ SERVICE_CONTEXT }
 
     async fn middleware_pre(&self, request: actix_web::dev::ServiceRequest) 
             -> Result<actix_web::dev::ServiceRequest, rmt::Error> 
@@ -66,7 +57,7 @@ impl rmt::http::Worker for ServiceWorker {
 }
 
 
-#[rmt::rmtm::main(protocol = "http")]
+#[rmtm::main(protocol = "http")]
 async fn main() {
     rmt::logger::set_log_level(rmt::logger::LogLevel::Info);
     let service_worker = ServiceWorker { 

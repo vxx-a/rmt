@@ -2,7 +2,7 @@ use std::sync::Arc;
 use actix_web::{App, HttpServer, body::BoxBody, dev::{self, ServiceResponse}, middleware::{self, from_fn}, web};
 use log::{error, info, trace, warn};
 
-use crate::{Origin, gates::{GateErrorResponse, GateResult}, http::Worker, logger::init_logger, origin::AllowedOrigins};
+use crate::{Origin, common_gate::{GateErrorResponse, GateResult}, http::{Worker, gate::Service}, logger::init_logger, origin::AllowedOrigins};
 
 pub enum Encryption {
     TLS(rustls::ServerConfig),
@@ -22,11 +22,13 @@ pub struct Instance<W: Worker> {
     workers_count: usize   // 0 - automatic by actix
 }
 
-async fn processor<W: Worker>(data: web::Json<W::GReq>, worker: web::Data<W>) -> web::Json<GateResult<W::GRes>>  {
+async fn processor<W: Worker>(data: web::Json<<W::S as Service>::Requests>, worker: web::Data<W>) 
+    -> web::Json<GateResult<<W::S as Service>::Responses>>  
+{
     let data = data.into_inner();
 
     let response = worker 
-        .process_request(data)
+        .matcher(data)
         .await;
 
     if let Err(err) = &response {
