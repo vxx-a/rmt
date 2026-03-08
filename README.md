@@ -43,7 +43,7 @@ pub static SERVICE_CONTEXT: rmt::http::Context<MyService> = http_context![ ::202
 ```
 *This part can be accessed by other services.*
 
-User is responsible for assigning some response to each request. Request Ping should return a response Pong, but it may not. It is user's responsibility to match the service response correctly. Stronger typization may be added in the future.
+User is assigning to each gate some request and response.
 
 ###### Gates implementation
 ```rust
@@ -68,7 +68,8 @@ async fn process(_request: Self::Request, _worker: &Self::W) -> Result<Self::Res
 async fn process(request: Self::Request, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
     // Send requests to other services
     let new_msg = http_request! { 
-        SERVICE_CONTEXT | (worker.http_client.clone()) MyService : Msg { msg: request.msg }
+        SERVICE_CONTEXT | (worker.http_client.clone()) 
+        MyService : Msg { msg: request.msg }
     }
         .await
         .map(|res| res.msg + "1")
@@ -130,6 +131,7 @@ async fn main() {
 use some_service::defs;
 
 ...
-    http_request! { defs::SERVICE_CONTEXT | (http_client) ServiceName : Method { fields } }
+    http_request! { defs::SERVICE_CONTEXT | (http_client) 
+    ServiceName : Method { fields } }
 ...
 ```
