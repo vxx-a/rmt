@@ -48,8 +48,8 @@ User is assigning to each gate some request and response.
 ###### Gates implementation
 ```rust
 #[rmtm::http_gate( MyService : Msg | ServiceWorker )]
-async fn process(request: Self::Request, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
-    let msg: String = request.msg.chars().rev().collect();
+async fn process(self, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+    let msg: String = self.msg.chars().rev().collect();
     let last_msg = worker.last_message.lock().unwrap().to_string();
     *worker.last_message.lock().unwrap() = msg.clone();
     
@@ -60,12 +60,12 @@ async fn process(request: Self::Request, worker: &Self::W) -> Result<Self::Respo
 }
 
 #[rmtm::http_gate( MyService : Ping | ServiceWorker )]
-async fn process(_request: Self::Request, _worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+async fn process(self, _worker: &Self::W) -> Result<Self::Response, rmt::Error> {
     Ok(Self::Response { })
 }
 
 #[rmtm::http_gate( MyService : Hello | ServiceWorker )]
-async fn process(request: Self::Request, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+async fn process(self, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
     // Send requests to other services
     let new_msg = http_request! { 
         SERVICE_CONTEXT | (worker.http_client.clone()) 
@@ -91,8 +91,7 @@ struct ServiceWorker {
 }
 
 impl rmt::http::Worker for ServiceWorker {
-    http_bind_service!{ MyService }
-    http_bind_ctx!{ SERVICE_CONTEXT }
+    http_bind_worker! { SERVICE_CONTEXT | MyService }
 
     async fn middleware_pre(&self, request: actix_web::dev::ServiceRequest) 
             -> Result<actix_web::dev::ServiceRequest, rmt::Error> 
