@@ -34,27 +34,27 @@ macro_rules! http_gates {
             $(
                 // Gate request struct
                 #[derive($crate::serde::Serialize, $crate::serde::Deserialize, Clone)]
-                pub struct [<HTTP $service_name $gate_name Req>] {
+                pub struct [<RMTHTTP $service_name $gate_name Req>] {
                     $( pub $req_field : $req_ty ),*
                 }
-                impl $crate::Payload for [<HTTP $service_name $gate_name Req>] { }
+                impl $crate::Payload for [<RMTHTTP $service_name $gate_name Req>] { }
 
                 // Gate response struct
                 #[derive($crate::serde::Serialize, $crate::serde::Deserialize, Clone, Default)]
-                pub struct [<HTTP $service_name $gate_name Res>] {
+                pub struct [<RMTHTTP $service_name $gate_name Res>] {
                     $( pub $res_field : $res_ty ),*
                 }
-                impl $crate::Payload for [<HTTP $service_name $gate_name Res>] { }
+                impl $crate::Payload for [<RMTHTTP $service_name $gate_name Res>] { }
 
-                impl From<[<HTTP $service_name $gate_name Res>]> for [<HTTP $service_name ResGates>] {
-                    fn from(item: [<HTTP $service_name $gate_name Res>]) -> Self {
-                        [<HTTP $service_name ResGates>]::$gate_name(item)
+                impl From<[<RMTHTTP $service_name $gate_name Res>]> for [<RMTHTTP $service_name ResGates>] {
+                    fn from(item: [<RMTHTTP $service_name $gate_name Res>]) -> Self {
+                        [<RMTHTTP $service_name ResGates>]::$gate_name(item)
                     }
                 }
 
-                impl From<[<HTTP $service_name ReqGates>]> for [<HTTP $service_name $gate_name Req>] {
-                    fn from(value: [<HTTP $service_name ReqGates>]) -> Self {
-                        let gate = if let [<HTTP $service_name ReqGates>]::$gate_name(req) = value {
+                impl From<[<RMTHTTP $service_name ReqGates>]> for [<RMTHTTP $service_name $gate_name Req>] {
+                    fn from(value: [<RMTHTTP $service_name ReqGates>]) -> Self {
+                        let gate = if let [<RMTHTTP $service_name ReqGates>]::$gate_name(req) = value {
                             Ok(req)
                         } else {
                             Err(())
@@ -65,9 +65,9 @@ macro_rules! http_gates {
                     }
                 }
                 
-                impl From<[<HTTP $service_name $gate_name Req>]> for [<HTTP $service_name ReqGates>] {
-                    fn from(value: [<HTTP $service_name $gate_name Req>]) -> Self {
-                        [<HTTP $service_name ReqGates>]::$gate_name(value)
+                impl From<[<RMTHTTP $service_name $gate_name Req>]> for [<RMTHTTP $service_name ReqGates>] {
+                    fn from(value: [<RMTHTTP $service_name $gate_name Req>]) -> Self {
+                        [<RMTHTTP $service_name ReqGates>]::$gate_name(value)
                     }
                 }
             )*
@@ -75,41 +75,41 @@ macro_rules! http_gates {
             // Request gates enum
             #[derive(Clone, $crate::serde::Serialize, $crate::serde::Deserialize)]
             #[serde(tag = "gate")]
-            pub enum [<HTTP $service_name ReqGates>] {
+            pub enum [<RMTHTTP $service_name ReqGates>] {
                 $(
-                    $gate_name([<HTTP $service_name $gate_name Req>])
+                    $gate_name([<RMTHTTP $service_name $gate_name Req>])
                 ),*
             }
-            impl $crate::Payload for [<HTTP $service_name ReqGates>] { }
-            impl $crate::http::RequestGatesMarker for [<HTTP $service_name ReqGates>] { }
+            impl $crate::Payload for [<RMTHTTP $service_name ReqGates>] { }
+            impl $crate::http::RequestGatesMarker for [<RMTHTTP $service_name ReqGates>] { }
 
 
             // Response gates enum
             #[derive(Clone, $crate::serde::Serialize, $crate::serde::Deserialize)]
             #[serde(tag = "gate")]
-            pub enum [<HTTP $service_name ResGates>] {
+            pub enum [<RMTHTTP $service_name ResGates>] {
                 $(
-                    $gate_name([<HTTP $service_name $gate_name Res>])
+                    $gate_name([<RMTHTTP $service_name $gate_name Res>])
                 ),*
             }
-            impl $crate::Payload for [<HTTP $service_name ResGates>] { }
-            impl $crate::http::ResponseGatesMarker for [<HTTP $service_name ResGates>] { }
+            impl $crate::Payload for [<RMTHTTP $service_name ResGates>] { }
+            impl $crate::http::ResponseGatesMarker for [<RMTHTTP $service_name ResGates>] { }
 
             pub struct $service_name { }
             impl $crate::http::Service for $service_name {
-                type Requests = [<HTTP $service_name ReqGates>];
-                type Responses = [<HTTP $service_name ResGates>];
+                type Requests = [<RMTHTTP $service_name ReqGates>];
+                type Responses = [<RMTHTTP $service_name ResGates>];
             }
 
             #[macro_export]
-            macro_rules! [<$service_name:snake _binder>] {
+            macro_rules! [<$service_name:snake _binder__>] {
                 [ $worker:ident | $request:ident ] => {
                     match $request {
                         $(
-                            [<HTTP $service_name ReqGates>]::$gate_name(req) => 
-                                [<HTTP $service_name $gate_name Serv>]::process(req, $worker)
+                            [<RMTHTTP $service_name ReqGates>]::$gate_name(req) => 
+                                [<RMTHTTP $service_name $gate_name Req>]::process(req, $worker)
                                     .await
-                                    .map(|res| Into::<[<HTTP $service_name ResGates>]>::into(res))
+                                    .map(|res| Into::<[<RMTHTTP $service_name ResGates>]>::into(res))
                         ),*
                     }
                 }
@@ -119,16 +119,20 @@ macro_rules! http_gates {
 }
 
 #[macro_export]
-macro_rules! http_bind_service {
+macro_rules! http_bind_worker {
     {
-        $service_name:ident
+        $context:ident | $service_name:ident
     } => {
         $crate::paste::paste! {
             type S = $service_name;
 
+            fn context_ref(&self) -> &'static $crate::http::Context<Self::S> {
+                &$context
+            }
+
             async fn matcher(&self, request: <Self::S as $crate::http::Service>::Requests)
                 -> Result<<Self::S as $crate::http::Service>::Responses, $crate::Error> 
-            { [<$service_name:snake _binder>]![ self | request ] }
+            { [<$service_name:snake _binder__>]![ self | request ] }
         }
     };
 }

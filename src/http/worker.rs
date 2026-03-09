@@ -37,14 +37,3 @@ pub trait Worker: Clone + Sync + Send {
         Ok(response)
     }
 }
-
-#[macro_export]
-macro_rules! http_bind_ctx {
-    {
-        $context:ident
-    } => {
-        fn context_ref(&self) -> &'static $crate::http::Context<Self::S> {
-            &$context
-        }
-    };
-}

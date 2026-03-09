@@ -27,11 +27,10 @@ impl<S: Service> Context<S> {
     }
 
     /** Make request to a microservice by using context */
-    pub async fn request<G>(&self, http_client: reqwest::Client, gate: G::Request) 
+    pub async fn request<G>(&self, http_client: reqwest::Client, gate: G) 
         -> Result<G::Response, Error> 
     where 
-        G: Gate,
-        G::Request: Into<<S as Service>::Requests>
+        G: Gate + Into<<S as Service>::Requests>,
     {
         let path = if self.internal { "internal-request" } else { "request" };
         
@@ -60,9 +59,9 @@ macro_rules! http_request {
         $gate_name:ident { $($req_field:ident : $req_v:expr ),* $(,)? }
     } => {
         $crate::paste::paste! {
-            $context.request::<[<HTTP $service_name $gate_name Serv>]>(
+            $context.request::<[<RMTHTTP $service_name $gate_name Req>]>(
                 $client,
-                [<HTTP $service_name $gate_name Req>] { $( $req_field : $req_v ),* }
+                [<RMTHTTP $service_name $gate_name Req>] { $( $req_field : $req_v ),* }
             )
         }
     };

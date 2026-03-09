@@ -45,7 +45,7 @@ impl Parse for HTTPGateArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let service: syn::Ident = input.parse()?;
 
-        input.parse::<Token![:]>()?;
+        input.parse::<Token![::]>()?;
         let gate: syn::Ident = input.parse()?;
 
         input.parse::<Token![|]>()?;

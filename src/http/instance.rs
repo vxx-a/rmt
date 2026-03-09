@@ -56,7 +56,6 @@ async fn middleware<W>(
         })?
         .to_string();
 
-    info!("{}", origin);
 
     trace!("New request from origin {}.", origin);
 
