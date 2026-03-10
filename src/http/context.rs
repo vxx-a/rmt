@@ -98,7 +98,7 @@ macro_rules! http_context {
         $crate::http::Context::new($crate::Origin::IP { addr: $ip, port: $port }, false)
     };
     [
-        (i) $ip:literal:ident:$port:expr
+        (i) $ip:literal:$port:expr
     ] => {
         $crate::http::Context::new($crate::Origin::IP { addr: $ip, port: $port }, true)
     };
