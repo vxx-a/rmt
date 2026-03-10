@@ -40,7 +40,7 @@ macro_rules! http_gates {
                 impl $crate::Payload for [<RMTHTTP $service_name $gate_name Req>] { }
 
                 // Gate response struct
-                #[derive($crate::serde::Serialize, $crate::serde::Deserialize, Clone, Default)]
+                #[derive($crate::serde::Serialize, $crate::serde::Deserialize, Clone)]
                 pub struct [<RMTHTTP $service_name $gate_name Res>] {
                     $( pub $res_field : $res_ty ),*
                 }
