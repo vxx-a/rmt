@@ -9,8 +9,7 @@ use crate::{Error, http::{Context, gate::Service}};
     
     Use binding macros inside for simplicity
     ```
-    http_bind_service!{ MyService }
-    http_bind_ctx!{ SERVICE_CONTEXT }
+    http_bind_worker!{ SERVICE_CONTEXT | MyService }
     ```
 
     Is called by Service Instance.

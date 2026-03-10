@@ -55,7 +55,7 @@ impl<S: Service> Context<S> {
 #[macro_export]
 macro_rules! http_request {
     {
-        $context:ident | ($client:expr) $service_name:ident : 
+        $context:path | ($client:expr) $service_name:ident : 
         $gate_name:ident { $($req_field:ident : $req_v:expr ),* $(,)? }
     } => {
         $crate::paste::paste! {
