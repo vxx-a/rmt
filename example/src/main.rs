@@ -14,8 +14,9 @@ pub struct ServiceWorker {
 #[rmtm::http_gate( MyService::Msg | ServiceWorker )]
 async fn process(self, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
     let msg: String = self.msg.chars().rev().collect();
-    let last_msg = worker.last_message.lock().unwrap().to_string();
-    *worker.last_message.lock().unwrap() = msg.clone();
+    let mut last_msg_guard = worker.last_message.lock().unwrap();
+    let last_msg = last_msg_guard.clone();
+    *last_msg_guard = msg.clone();
     
     Ok(Self::Response {
         msg,
