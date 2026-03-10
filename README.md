@@ -116,10 +116,9 @@ async fn main() {
     };
 
 	// Create your instance from the worker
-    let mut instance = rmt::http::Instance::new(service_worker);
-    instance.set_workers_count(2);
-
-    instance.run()
+    rmt::http::Instance::new(service_worker)
+        .set_workers_count(2);
+        .run()
         .await
         .expect("Error in main func");
 }
