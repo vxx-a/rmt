@@ -106,8 +106,8 @@ macro_rules! http_gates {
                 [ $worker:ident | $request:ident ] => {
                     match $request {
                         $(
-                            [<RMTHTTP $service_name ReqGates>]::$gate_name(req) => 
-                                [<RMTHTTP $service_name $gate_name Req>]::process(req, $worker)
+                            [<RMTHTTP $service_name ReqGates>]::$gate_name(req) =>
+                                <[<RMTHTTP $service_name $gate_name Req>] as $crate::http::Gate>::process(req, $worker)
                                     .await
                                     .map(|res| Into::<[<RMTHTTP $service_name ResGates>]>::into(res))
                         ),*
