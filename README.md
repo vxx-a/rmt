@@ -117,7 +117,7 @@ async fn main() {
 
 	// Create your instance from the worker
     rmt::http::Instance::new(service_worker)
-        .set_workers_count(2);
+        .set_workers_count(2)
         .run()
         .await
         .expect("Error in main func");
