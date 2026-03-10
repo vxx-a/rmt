@@ -130,6 +130,6 @@ use some_service::defs;
 
 ...
     http_request! { defs::SERVICE_CONTEXT | (http_client) 
-    ServiceName : Method { fields } }
+    ServiceName :: Method { fields } }
 ...
 ```
