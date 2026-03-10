@@ -1,29 +1,9 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{ItemEnum, ItemFn, parse_macro_input};
+use syn::{ItemFn, parse_macro_input};
 
 mod attribute;
 use attribute::*;
-
-#[proc_macro_attribute]
-pub fn gates(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as ItemEnum);
-
-    let vis = &input.vis;
-    let ident = &input.ident;
-    let variants = &input.variants;
-    let generics = &input.generics;
-
-    quote! {
-        #[derive(::serde::Serialize, ::serde::Deserialize, Clone)]
-        #[serde(tag = "gate")]
-        #vis enum #ident #generics {
-            #variants
-        }
-        
-        impl rmt::Gates for #ident { }
-    }.into()
-}
 
 /** *Generates gate*
     ```
