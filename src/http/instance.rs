@@ -126,19 +126,22 @@ impl<W> Instance<W>
         }
     }
 
-    pub fn set_encryption(&mut self, enc: Encryption) {
+    pub fn set_encryption(mut self, enc: Encryption) -> Self {
         self.encryption = enc;
+        self
     }
 
-    pub fn set_workers_count(&mut self, count: usize) {
+    pub fn set_workers_count(mut self, count: usize) -> Self {
         self.workers_count = count;
+        self
     }
 
     /** Makes instance internal. Only requests from allowed origins are accepted.
         If allowed origins is ```None```, request from any origin will be accepted
     */
-    pub fn set_allowed_origins(&mut self, allowed_origins: Vec<Origin>) {
+    pub fn set_allowed_origins(mut self, allowed_origins: Vec<Origin>) -> Self {
         self.allowed_origins = Some(allowed_origins);
+        self
     }
 
     pub async fn run(self) -> std::io::Result<()> {

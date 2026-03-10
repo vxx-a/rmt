@@ -31,7 +31,8 @@ async fn process(self, _worker: &Self::W) -> Result<Self::Response, rmt::Error> 
 #[rmtm::http_gate( MyService::Hello | ServiceWorker )]
 async fn process(self, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
     let new_msg = http_request! { 
-        SERVICE_CONTEXT | (worker.http_client.clone()) MyService : Msg { msg: self.msg }
+        SERVICE_CONTEXT | (worker.http_client.clone()) 
+        MyService : Msg { msg: self.msg }
     }
         .await
         .map(|res| res.msg + "1")
@@ -64,18 +65,14 @@ async fn main() {
         http_client: reqwest::Client::new()
     };
 
-    let mut instance = rmt::http::Instance::new(service_worker);
-
-    instance.set_encryption(Encryption::None);
-    instance.set_workers_count(2);
-    
-    // Will block local requests!
-    // instance.set_allowed_origins(vec![Origin::Remote { ip: "122.12.52.12", port: 0 }]);
-    
-    // Only local requests!
-    instance.set_allowed_origins(vec![Origin::Local { port: 0 }]);
-
-    instance.run()
+    rmt::http::Instance::new(service_worker)
+        .set_encryption(Encryption::None)
+        .set_workers_count(2)
+        // Will block local requests!
+        // .set_allowed_origins(vec![Origin::Remote { ip: "122.12.52.12", port: 0 }]);
+        // Only local requests!
+        .set_allowed_origins(vec![Origin::Local { port: 0 }])
+        .run()
         .await
         .expect("Error in main func");
 }
