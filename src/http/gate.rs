@@ -5,11 +5,10 @@ pub trait Gate: Payload {
     type Response: Payload;
     type W: Worker;
 
-    #[allow(unused_variables)]
-    fn process(self, worker: &Self::W)
-        -> impl Future<Output = Result<Self::Response, Error>> + Send
+    #[allow(unused_variables, async_fn_in_trait)]
+    async fn process(self, worker: &Self::W) -> Result<Self::Response, Error>
     {
-        async { Err(Error::Service(ServiceError::NotImplemented)) }
+        Err(Error::Service(ServiceError::NotImplemented))
     }
 }
 

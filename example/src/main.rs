@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use log::warn;
-use rmt::{self, Origin, http::{Gate, instance::Encryption}, http_bind_worker, http_request, rmtm};
+use rmt::{self, Origin, http::{Gate, instance::Encryption}, http_request, http_bind_worker, warn, rmtm};
 mod definitions;
 use definitions::*;
 
