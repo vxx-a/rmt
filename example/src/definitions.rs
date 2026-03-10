@@ -1,19 +1,18 @@
-#[rmt::rmtm::gates]
-pub enum ExGatesReq {
-    Ping { },
-    Hello { msg: String },
-    HelloToMe { msg: String },
-    Time { },
-    Last { }
-}
+use rmt::{http_context, http_gates};
 
-#[rmt::rmtm::gates]
-pub enum ExGatesRes {
-    Pong { },
-    Hello { msg: String },
-    Time { time: String },
-    Last { msg: String }
-}
+http_gates!(MyService [
+    Msg {
+        request: { msg: String },
+        response: { msg: String, last_msg: String }
+    },
+    Ping {
+        request: { },
+        response: { }
+    },
+    Hello {
+        request: { msg: String },
+        response: { msg: String }
+    }
+]);
 
-pub static SERVICE_CONTEXT: rmt::http::Context<ExGatesReq, ExGatesRes> = 
-    rmt::http::Context::new(rmt::Origin::Local { port: 2020 }, false);
+pub static SERVICE_CONTEXT: rmt::http::Context<MyService> = http_context![ ::2020 ];

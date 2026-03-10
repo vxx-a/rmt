@@ -1,29 +1,48 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{ItemEnum, ItemFn, parse_macro_input};
+use syn::{ItemFn, parse_macro_input};
 
 mod attribute;
 use attribute::*;
 
+/** *Generates gate*
+    ```
+    #[http_gate(MyService::GateName | Worker)]
+    async fn process(self, worker: &Self::W) -> Result<Self::Response, Error> {
+        // implementation
+    }
+    ```
+    Where `self` is the request
+ */
 #[proc_macro_attribute]
-pub fn gates(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as ItemEnum);
+pub fn http_gate(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as HTTPGateArgs);
+    let input = parse_macro_input!(item as ItemFn);
 
-    let vis = &input.vis;
-    let ident = &input.ident;
-    let variants = &input.variants;
-    let generics = &input.generics;
+    let block = input.block;
+    let attrs = input.attrs;
+    let _vis = input.vis;
+    let sig = input.sig;
+
+    let gate = args.gate;
+    let service = args.service;
+    let worker = args.worker;
 
     quote! {
-        #[derive(::serde::Serialize, ::serde::Deserialize, Clone)]
-        #[serde(tag = "gate")]
-        #vis enum #ident #generics {
-            #variants
+        rmt::paste::paste! {
+            impl rmt::http::Gate for [<RMTHTTP #service #gate Req>] {
+                type Response = [<RMTHTTP #service #gate Res>];
+                type W = #worker;
+
+                #(#attrs)*
+                #sig
+                {
+                    #block
+                }
+            }
+
         }
-        
-        impl rmt::Gates for #ident { }
-    }
-    .into()
+    }.into()
 }
 
 #[proc_macro_attribute]

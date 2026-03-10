@@ -1,4 +1,4 @@
-use crate::{Error, gates::Gates, http::Context};
+use crate::{Error, http::{Context, gate::Service}};
 
 #[allow(async_fn_in_trait)]
 
@@ -7,16 +7,20 @@ use crate::{Error, gates::Gates, http::Context};
     Defines interface for user to implement processing. Independent from Service Context.
     Worker can store data which can be accessed in every request. Because of this Clone + Sync + Send is required.
     
+    Use binding macros inside for simplicity
+    ```
+    http_bind_worker!{ SERVICE_CONTEXT | MyService }
+    ```
+
     Is called by Service Instance.
  */
 pub trait Worker: Clone + Sync + Send {
-    type GReq: Gates + 'static;
-    type GRes: Gates + 'static;
+    type S: Service;
 
-    async fn process_request(&self, gates: Self::GReq) -> Result<Self::GRes, Error>;
+    async fn matcher(&self, request: <Self::S as Service>::Requests)
+        -> Result<<Self::S as Service>::Responses, Error>;
 
-    /** Should return reference on static context with same gates */
-    fn context_ref(&self) -> &'static Context<Self::GReq, Self::GRes>;
+    fn context_ref(&self) -> &'static Context<Self::S>;
 
     /** Function is ran before the request has been processed */
     async fn middleware_pre(&self, request: actix_web::dev::ServiceRequest) 

@@ -24,5 +24,6 @@ impl Display for Error {
 pub enum ServiceError {
     ServiceRequestTimeout,
     JSONParseError(String),
-    WrongGate
+    WrongGate,
+    NotImplemented
 }

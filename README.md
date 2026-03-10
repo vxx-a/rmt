@@ -9,42 +9,78 @@ Make requests to other microservices by simply importing them.
 ### Definitions
 `[Enum]`**Origin**  - service origin. Is relativistic to other services and depends on final architecture (local for small projects in one docker image, remote for big projects involving many docker images).
 
-`[Trait]`**Gates** - api itself. For http request and response gates. For websockets incoming and outgoing.
-
 `[Static Object]`**Context** - service description.
 
-`[Trait]`**Worker** - trait for an user-defined worker object. Can store shareable data, should have a Context attached. User implements request processing in the trait implementation.
+`[Trait]`**Gate** - Inputs and Outputs of a service.
+
+`[Trait]`**Worker** - trait for an user-defined worker object. Can store shareable data, should have a Context attached.
 
 `[Object]`**Instance** - service instance, which operates on a worker object.
 
 ### Example
 The [example crate](./example).
 
-###### Service Definitions
+###### HTTP Service Definitions
 ```rust
-// Request Gates
-#[rmt::rmtm::gates]
-pub enum GatesReq {
-    Ping { },
-    Hello { msg: String }
-}
+// Request / Response gates. MyService as a service name
+http_gates!(MyService [
+    Msg {
+        request: { msg: String },
+        response: { msg: String, last_msg: String }
+    },
+    Ping {
+        request: { },
+        response: { }
+    },
+    Hello {
+        request: { msg: String },
+        response: { msg: String }
+    }
+]);
 
-// Response Gates
-#[rmt::rmtm::gates]
-pub enum GatesRes {
-    Pong { },
-    Hello { msg: String }
-}
-
-// Describe a service with gates from above
-// Assign localhost on port 2020
-// Set false to internal flag (can recieve any request)
-pub static SERVICE_CONTEXT: rmt::http::Context<GatesReq, GatesRes> = 
-    rmt::http::Context::new(rmt::Origin::Local { port: 2020 }, false);
+// Local origin, non-internal
+pub static SERVICE_CONTEXT: rmt::http::Context<MyService> = http_context![ ::2020 ];
 ```
 *This part can be accessed by other services.*
 
-User is responsible for assigning some response to each request. Request Ping should return a response Pong, but it may not. It is user's responsibility to match the service response correctly. Stronger typization may be added in the future.
+User is assigning to each gate some request and response.
+
+###### Gates implementation
+```rust
+#[rmtm::http_gate( MyService : Msg | ServiceWorker )]
+async fn process(self, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+    let msg: String = self.msg.chars().rev().collect();
+    let last_msg = worker.last_message.lock().unwrap().to_string();
+    *worker.last_message.lock().unwrap() = msg.clone();
+    
+    Ok(Self::Response {
+        msg,
+        last_msg
+    })
+}
+
+#[rmtm::http_gate( MyService : Ping | ServiceWorker )]
+async fn process(self, _worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+    Ok(Self::Response { })
+}
+
+#[rmtm::http_gate( MyService : Hello | ServiceWorker )]
+async fn process(self, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
+    // Send requests to other services
+    let new_msg = http_request! { 
+        SERVICE_CONTEXT | (worker.http_client.clone()) 
+        MyService : Msg { msg: self.msg }
+    }
+        .await
+        .map(|res| res.msg + "1")
+        .map_err(|e| warn!("{e}"))
+        .unwrap_or("NO MSG!".to_string());
+    
+    Ok(Self::Response { 
+        msg: new_msg
+    })
+}
+```
 
 ###### Service implementation
 ```rust
@@ -55,28 +91,15 @@ struct ServiceWorker {
 }
 
 impl rmt::http::Worker for ServiceWorker {
-	// Assigning gates to your worker
-	type GReq = GatesReq;
-    type GRes = GatesRes;
-    
-    // User should return a reference to the 
-    // static context defined before
-    fn context_ref(&self) -> 
-    &'static rmt::http::Context<Self::GReq, Self::GRes>;
-    
-    // The request processor.
-    async fn process_request(&self, gates: Self::GReq) ->
-    Result<Self::GRes, rmt::Error>;
-    
-    // Optional middleware implementation
-    // Allows to manipulate the actix_web request
-    async fn middleware_pre(&self, request: ServiceRequest) -> 
-        Result<ServiceRequest, rmt::Error>;
-        
-    // Optional middleware implementation
-    // Allows to manipulate the actix_web response
-    async fn middleware_post(&self, response: ServiceResponse) -> 
-        Result<ServiceResponse, rmt::Error>;
+    http_bind_worker! { SERVICE_CONTEXT | MyService }
+
+    async fn middleware_pre(&self, request: actix_web::dev::ServiceRequest) 
+            -> Result<actix_web::dev::ServiceRequest, rmt::Error> 
+    {       
+        println!("New request! {}", request.peer_addr().unwrap());
+
+        Ok(request)
+    }
 }
 ```
 
@@ -93,10 +116,9 @@ async fn main() {
     };
 
 	// Create your instance from the worker
-    let mut instance = rmt::http::Instance::new(service_worker);
-    instance.set_workers_count(2);
-
-    instance.run()
+    rmt::http::Instance::new(service_worker)
+        .set_workers_count(2)
+        .run()
         .await
         .expect("Error in main func");
 }
@@ -107,7 +129,7 @@ async fn main() {
 use some_service::defs;
 
 ...
-	defs::SERVICE_CONTEXT.request(http_client, defs::Request::Ping { })
-		.await
+    http_request! { defs::SERVICE_CONTEXT | (http_client) 
+    ServiceName :: Method { fields } }
 ...
 ```
