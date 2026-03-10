@@ -16,7 +16,7 @@
 
     Generate Service type with provided name
 
-    Generates additional auxilary binding macro
+    Generates additional auxiliary binding macro
  */
 #[macro_export]
 macro_rules! http_gates {
