@@ -69,7 +69,7 @@ async fn process(self, worker: &Self::W) -> Result<Self::Response, rmt::Error> {
     // Send requests to other services
     let new_msg = http_request! { 
         SERVICE_CONTEXT | (worker.http_client.clone()) 
-        MyService : Msg { msg: request.msg }
+        MyService : Msg { msg: self.msg }
     }
         .await
         .map(|res| res.msg + "1")
