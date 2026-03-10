@@ -50,7 +50,7 @@ pub fn http_gate(attr: TokenStream, item: TokenStream) -> TokenStream {
         rmt::paste::paste! {
             impl rmt::http::Gate for [<RMTHTTP #service #gate Req>] {
                 type Response = [<RMTHTTP #service #gate Res>];
-                type W = [< #worker >];
+                type W = #worker;
 
                 #(#attrs)*
                 #sig
