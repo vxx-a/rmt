@@ -7,8 +7,10 @@ use attribute::*;
 
 /** *Generates gate*
     ```
-    #[http_gate( MyService :: GateName | Worker )]
-    async fn<W: Worker>(self, worker: &W) -> Result<Self::Response, Error> {
+    #[http_gate(MyService::GateName | Worker)]
+    async fn process(self, worker: &Self::W) -> Result<Self::Response, Error> {
+        // implementation
+    }
     ```
     Where `self` is the request
  */
